@@ -19,8 +19,8 @@ export const userService = {
   // Actualizar datos del usuario
   update: (id, userData) =>
     apiClient(`/users/${id}`, {
-      body: userData,
-      method: "PUT",
+      body: { ...userData, id },
+      method: "PATCH",
     }),
 
   // Borrar usuario

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useUsers } from "./hooks/useUsers";
 import { UserForm } from "./components/UserForm";
 import { UserList } from "./components/UserList";
+import { ConfirmModal } from "./components/ConfirmModal";
 
 const USERS_PER_PAGE = 5;
 
@@ -15,12 +16,16 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   // Página en la que estamos parados
   const [currentPage, setCurrentPage] = useState(1);
+  // Guarda el id del usuario que queremos eliminar para abrir el modal
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Guardar datos: si tenemos a alguien seleccionado editamos, si no lo creamos
   const handleFormSubmit = async (formData) => {
     if (selectedUser) {
-      await updateUser(selectedUser.id, formData);
-      setSelectedUser(null);
+      const res = await updateUser(selectedUser.id, formData);
+      if (res?.success) {
+        setSelectedUser(null);
+      }
     } else {
       await createUser(formData);
     }
@@ -36,14 +41,24 @@ export default function App() {
     setSelectedUser(null);
   };
 
-  // Confirmamos antes de borrar para que no se presione por error
-  const handleDeleteClick = async (id) => {
-    if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
-      await deleteUser(id);
-      if (selectedUser?.id === id) {
-        setSelectedUser(null);
-      }
+  // Abre el modal de confirmación guardando el ID del usuario
+  const handleDeleteClick = (id) => {
+    setUserToDelete(id);
+  };
+
+  // Ejecuta el borrado cuando el usuario confirma en el modal
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    await deleteUser(userToDelete);
+    if (selectedUser?.id === userToDelete) {
+      setSelectedUser(null);
     }
+    setUserToDelete(null);
+  };
+
+  // Cierra el modal sin borrar
+  const handleCancelDelete = () => {
+    setUserToDelete(null);
   };
 
   // Filtramos la lista según lo que escriba el usuario.
@@ -105,6 +120,7 @@ export default function App() {
           onSubmit={handleFormSubmit}
           userToEdit={selectedUser}
           onCancel={handleCancelEdit}
+          isSubmitting={isLoading}
         />
 
         {/* Barra de herramientas / Búsqueda */}
@@ -158,6 +174,15 @@ export default function App() {
             </button>
           </div>
         )}
+
+        {/* Modal de confirmación para eliminar */}
+        <ConfirmModal
+          isOpen={Boolean(userToDelete)}
+          title="Eliminar usuario"
+          message="¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer."
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       </div>
     </main>
   );

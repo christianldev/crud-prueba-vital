@@ -33,9 +33,10 @@ export function useUsers() {
     setError(null);
     try {
       const createdUser = await userService.create(newUserData);
-      // Como JSONPlaceholder es de mentira y siempre devuelve id 11,
-      // le ponemos un id con la fecha actual para que la key de React no se repita
-      const safeUser = { ...createdUser, id: Date.now() };
+      // Si el backend ya generó un ID real (como json-server), lo conservamos
+      const safeUser = createdUser?.id
+        ? createdUser
+        : { ...createdUser, id: Date.now() };
       setUsers((prev) => [safeUser, ...prev]);
       return { success: true };
     } catch (err) {
@@ -51,11 +52,13 @@ export function useUsers() {
     setIsLoading(true);
     setError(null);
     try {
-      await userService.update(id, updatedData);
+      const updatedUser = await userService.update(id, updatedData);
       // Actualizamos el usuario directamente en la lista local para ver el cambio ya
       setUsers((prev) =>
         prev.map((user) =>
-          user.id === id ? { ...user, ...updatedData } : user,
+          user.id === id
+            ? { ...user, ...updatedData, ...(updatedUser || {}) }
+            : user,
         ),
       );
       return { success: true };
